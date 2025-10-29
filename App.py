@@ -123,14 +123,14 @@ df_externo = df_filtrado[df_filtrado["Categoria"] == "Externo"]
 # 📊 MOSTRAR RESULTADOS
 # =====================
 
-st.markdown("### 🔧 Listado Interno")
+st.markdown("### 🔧 Listado Material Interno")
 st.dataframe(
     df_interno.reset_index(drop=True)[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
     use_container_width=True
 )
-st.markdown(f"**💵 Total Interno:** {df_interno['PrecioTotal'].sum():,.2f} €")
+st.markdown(f"**💵 Total Material Interno:** {df_interno['PrecioTotal'].sum():,.2f} €")
 
-st.markdown("### 📦 Listado Externo")
+st.markdown("### 📦 Listado Material Externo")
 st.dataframe(
     df_externo.reset_index(drop=True)[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
     use_container_width=True
