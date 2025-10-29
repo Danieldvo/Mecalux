@@ -6,7 +6,7 @@ from io import BytesIO
 # =====================
 # 📁 CARGA DE DATOS
 # =====================
-ruta_carpeta = Path(r"C:\Users\daniel.vargas\Desktop\Dani\Camara web")
+ruta_carpeta = Path(__file__).parent
 nombre_archivo = "Propuesta Auto.xlsx"
 hoja_materiales = "BD_Materiales"
 ruta_completa = ruta_carpeta / nombre_archivo
