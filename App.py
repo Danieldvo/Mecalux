@@ -112,14 +112,33 @@ df_interno = df_filtrado[df_filtrado["Categoria"] == "Interno"]
 df_externo = df_filtrado[df_filtrado["Categoria"] == "Externo"]
 
 # =====================
+# 💰 CALCULAR PRECIOS
+# =====================
+df_filtrado["PrecioTotal"] = df_filtrado["Cantidad"] * df_filtrado["PrecioUnit"]
+
+df_interno = df_filtrado[df_filtrado["Categoria"] == "Interno"]
+df_externo = df_filtrado[df_filtrado["Categoria"] == "Externo"]
+
+# =====================
 # 📊 MOSTRAR RESULTADOS
 # =====================
 
 st.markdown("### 🔧 Listado Interno")
-st.dataframe(df_interno.reset_index(drop=True)[["Descripcion", "Cantidad"]].style.format({"Cantidad": "{:g}"}).hide(axis="index"), use_container_width=True)
+st.dataframe(
+    df_interno.reset_index(drop=True)[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
+    use_container_width=True
+)
+st.markdown(f"**💵 Total Interno:** {df_interno['PrecioTotal'].sum():,.2f} €")
 
 st.markdown("### 📦 Listado Externo")
-st.dataframe(df_externo.reset_index(drop=True)[["Descripcion", "Cantidad"]].style.format({"Cantidad": "{:g}"}).hide(axis="index"), use_container_width=True)
+st.dataframe(
+    df_externo.reset_index(drop=True)[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
+    use_container_width=True
+)
+st.markdown(f"**💵 Total Externo:** {df_externo['PrecioTotal'].sum():,.2f} €")
+
+st.markdown("---")
+st.markdown(f"### 💰 Total General: {df_filtrado['PrecioTotal'].sum():,.2f} €")
 
 # =====================
 # 💾 DESCARGA DE RESULTADOS
