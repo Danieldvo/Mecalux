@@ -116,10 +116,10 @@ df_externo = df_filtrado[df_filtrado["Categoria"] == "Externo"]
 # =====================
 
 st.markdown("### 🔧 Listado Interno")
-st.dataframe(df_interno.reset_index(drop=True)[["Descripcion", "Cantidad"]].style.format({"Cantidad": "{:g}"}), use_container_width=True)
+st.dataframe(df_interno.reset_index(drop=True)[["Descripcion", "Cantidad"]].style.format({"Cantidad": "{:g}"}).hide(axis="index"), use_container_width=True)
 
 st.markdown("### 📦 Listado Externo")
-st.dataframe(df_externo.reset_index(drop=True)[["Descripcion", "Cantidad"]].style.format({"Cantidad": "{:g}"}), use_container_width=True)
+st.dataframe(df_externo.reset_index(drop=True)[["Descripcion", "Cantidad"]].style.format({"Cantidad": "{:g}"}).hide(axis="index"), use_container_width=True)
 
 # =====================
 # 💾 DESCARGA DE RESULTADOS
