@@ -1,5 +1,3 @@
 pandas
 openpyxl
 streamlit
-io
-pathlib
