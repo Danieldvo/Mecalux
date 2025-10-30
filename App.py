@@ -2,6 +2,9 @@ import pandas as pd
 import streamlit as st
 from pathlib import Path
 from io import BytesIO
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 
 # =====================
 # 📁 CARGA DE DATOS
@@ -163,6 +166,67 @@ df_interno = df_filtrado[df_filtrado["Categoria"] == "Interno"]
 df_externo = df_filtrado[df_filtrado["Categoria"] == "Externo"]
 
 # =====================
+# ➕ AÑADIR MATERIALES ADICIONALES
+# =====================
+st.markdown("---")
+st.subheader("➕ Añadir materiales adicionales")
+
+# Crear contenedor expandible
+with st.expander("Agregar material adicional"):
+    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+    with col1:
+        descripcion_extra = st.text_input("Descripción del material", "")
+    with col2:
+        cantidad_extra = st.number_input("Cantidad", min_value=0.0, step=1.0, value=0.0)
+    with col3:
+        precio_unit_extra = st.number_input("Precio unitario (€)", min_value=0.0, step=1.0, value=0.0)
+    with col4:
+        categoria_extra = st.selectbox("Categoría", ["Interno", "Externo"])
+
+    # Botón para añadir material
+    if st.button("➕ Añadir material"):
+        if descripcion_extra and cantidad_extra > 0 and precio_unit_extra > 0:
+            nuevo_material = pd.DataFrame({
+                "Descripcion": [descripcion_extra],
+                "Cantidad": [cantidad_extra],
+                "PrecioUnit": [precio_unit_extra],
+                "Categoria": [categoria_extra],
+                "PrecioTotal": [cantidad_extra * precio_unit_extra]
+            })
+
+            # Guardar en sesión temporal (para persistir hasta recargar)
+            if "materiales_adicionales" not in st.session_state:
+                st.session_state["materiales_adicionales"] = nuevo_material
+            else:
+                st.session_state["materiales_adicionales"] = pd.concat(
+                    [st.session_state["materiales_adicionales"], nuevo_material],
+                    ignore_index=True
+                )
+            st.success(f"✅ Material '{descripcion_extra}' añadido correctamente.")
+        else:
+            st.warning("⚠️ Debes introducir una descripción y valores válidos de cantidad y precio.")
+
+# Recuperar materiales adicionales si existen
+df_adicionales = st.session_state.get("materiales_adicionales", pd.DataFrame(
+    columns=["Descripcion", "Cantidad", "PrecioUnit", "Categoria", "PrecioTotal"]
+))
+
+# Mostrar materiales añadidos
+if not df_adicionales.empty:
+    st.markdown("### 🧾 Materiales adicionales añadidos")
+    st.dataframe(
+        df_adicionales[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal", "Categoria"]],
+        use_container_width=True,
+        hide_index=True
+    )
+
+# Incorporar los materiales adicionales al dataframe principal
+if not df_adicionales.empty:
+    df_filtrado = pd.concat([df_filtrado, df_adicionales], ignore_index=True)
+
+
+
+# =====================
 # 💰 CALCULAR PRECIOS
 # =====================
 df_filtrado["PrecioTotal"] = df_filtrado["Cantidad"] * df_filtrado["PrecioUnit"]
@@ -317,7 +381,7 @@ cant_frio_ctrl = dias_control * num_tec_control * horas_act if trabajo_frio == "
 
 # --- Definición de estructura de costes con tipo ---
 datos_coste = [
-    # Tipo Normal
+    # Tipo Horas Laborales
     {"Tipo": tipo_hora_electro, "Concepto": "Hora trabajo normal", "Electromecánico": cant_horas_electro * tarifa_hora_electro, "Control": cant_horas_ctrl * tarifa_hora_ctrl},
     {"Tipo": tipo_hora_despl_electro, "Concepto": "Hora desplazamiento", "Electromecánico": cant_despl_electro * tarifa_hora_despl_electro, "Control": cant_despl_ctrl * tarifa_hora_despl_ctrl},
     # Tipo Complementos
@@ -394,11 +458,10 @@ st.dataframe(
     use_container_width=True,hide_index=True
 )
 
-
-
 # =====================
-# 📊 5. RESUMEN DE OFERTA
+# 📊 4. RESUMEN DE OFERTA (con subdivisión de mano de obra)
 # =====================
+
 st.markdown("---")
 st.header("📊 4. Resumen de oferta")
 
@@ -415,58 +478,92 @@ with col2:
 # --- Sección de descuentos ---
 st.subheader("Descuentos aplicables (%)")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    descuento_interno = st.number_input("Descuento Materiales Internos (%)", min_value=0.0, max_value=100.0, value=10.0, step=0.5)
+    descuento_interno = st.number_input("Desc. Materiales Internos (%)", min_value=0.0, max_value=100.0, value=10.0, step=0.5)
 with col2:
-    descuento_externo = st.number_input("Descuento Materiales Externos (%)", min_value=0.0, max_value=100.0, value=55.0, step=0.5)
+    descuento_externo = st.number_input("Desc. Materiales Externos (%)", min_value=0.0, max_value=100.0, value=55.0, step=0.5)
 with col3:
-    descuento_mano_obra = st.number_input("Descuento Mano de Obra (%)", min_value=0.0, max_value=100.0, value=30.0, step=0.5)
+    descuento_horas = st.number_input("Desc. Mano de Obra - Horas Laborales (%)", min_value=0.0, max_value=100.0, value=30.0, step=0.5)
+with col4:
+    descuento_complementos = st.number_input("Desc. Mano de Obra - Complementos (%)", min_value=0.0, max_value=100.0, value=30.0, step=0.5)
+with col5:
+    descuento_ingenieria = st.number_input("Desc. Horas de Ingeniería (%)", min_value=0.0, max_value=100.0, value=30.0, step=0.5)
 
-descuento_ingenieria = st.number_input("Descuento Horas de Ingeniería (%)", min_value=0.0, max_value=100.0, value=30.0, step=0.5)
-
-# --- Calcular totales ---
+# --- Calcular totales por grupo ---
 total_interno = df_interno["PrecioTotal"].sum()
 total_externo = df_externo["PrecioTotal"].sum()
 
-total_mano_obra = df_final.loc[df_final["Concepto"] == "TOTAL GENERAL", ["Electromecánico", "Control"]].sum().sum()
+# Calcular subtotales mano de obra por tipo
+#subtotal_horas = df_final.loc[df_final["Tipo"] == "Horas Laborales", ["Electromecánico", "Control"]].sum().sum()
+#subtotal_complementos = df_final.loc[df_final["Tipo"] == "Complementos", ["Electromecánico", "Control"]].sum().sum()
+#total_mano_obra = subtotal_horas + subtotal_complementos
+
+# ✅ Calcular subtotales de mano de obra por tipo directamente desde df_costes
+subtotal_horas = (
+    df_costes[df_costes["Tipo"] == "Horas Laborales"][["Electromecánico", "Control"]]
+    .sum()
+    .sum()
+)
+
+subtotal_complementos = (
+    df_costes[df_costes["Tipo"] == "Complementos"][["Electromecánico", "Control"]]
+    .sum()
+    .sum()
+)
+
+# Asegurar valores numéricos (evita NaN)
+subtotal_horas = float(subtotal_horas) if pd.notna(subtotal_horas) else 0.0
+subtotal_complementos = float(subtotal_complementos) if pd.notna(subtotal_complementos) else 0.0
+
+# Total mano de obra = suma de ambos
+total_mano_obra = subtotal_horas + subtotal_complementos
+
+
+
+# Totales de ingeniería
 total_ingenieria = coste_ingenieria
 
-# Aplicar descuentos
+# --- Aplicar descuentos ---
 neto_interno = total_interno * (1 - descuento_interno / 100)
 neto_externo = total_externo * (1 - descuento_externo / 100)
-neto_mano_obra = total_mano_obra * (1 - descuento_mano_obra / 100)
+neto_horas = subtotal_horas * (1 - descuento_horas / 100)
+neto_complementos = subtotal_complementos * (1 - descuento_complementos / 100)
 neto_ingenieria = total_ingenieria * (1 - descuento_ingenieria / 100)
 
-# Total general
-total_tarifa = total_interno + total_externo + total_mano_obra + total_ingenieria
-total_descuento = ((total_tarifa - (neto_interno + neto_externo + neto_mano_obra + neto_ingenieria)) / total_tarifa) * 100
-total_neto = neto_interno + neto_externo + neto_mano_obra + neto_ingenieria
+# Totales generales
+total_tarifa = total_interno + total_externo + subtotal_horas + subtotal_complementos + total_ingenieria
+total_neto = neto_interno + neto_externo + neto_horas + neto_complementos + neto_ingenieria
+total_descuento = ((total_tarifa - total_neto) / total_tarifa) * 100
 
 # --- Crear tabla resumen ---
 df_resumen = pd.DataFrame({
     "Concepto": [
         "1. Materiales Internos",
         "2. Materiales Externos",
-        "3. Mano de Obra, Control y Puesta en Marcha",
+        "3.1 Mano de Obra - Horas Laborales",
+        "3.2 Mano de Obra - Complementos",
         "4. Ingeniería"
     ],
     "Tarifa (€)": [
         total_interno,
         total_externo,
-        total_mano_obra,
+        subtotal_horas,
+        subtotal_complementos,
         total_ingenieria
     ],
     "Descuento (%)": [
         descuento_interno,
         descuento_externo,
-        descuento_mano_obra,
+        descuento_horas,
+        descuento_complementos,
         descuento_ingenieria
     ],
     "Neto Cliente (€)": [
         neto_interno,
         neto_externo,
-        neto_mano_obra,
+        neto_horas,
+        neto_complementos,
         neto_ingenieria
     ]
 })
@@ -478,7 +575,7 @@ st.dataframe(
         "Tarifa (€)": "{:,.2f} €",
         "Descuento (%)": "{:.2f} %",
         "Neto Cliente (€)": "{:,.2f} €"
-    }),
+    }).hide(axis="index"),
     use_container_width=True,hide_index=True
 )
 
@@ -494,29 +591,120 @@ col3.metric("Total Neto Cliente", f"{total_neto:,.2f} €")
 # 💾 EXPORTAR A EXCEL
 # =====================
 
+# --- Generar el Excel inicial ---
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
     # Hoja 1: materiales filtrados
-    df_filtrado.to_excel(writer, index=False, sheet_name="Listado")
+    df_filtrado.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Listado")
 
     # Hoja 2: costes mano de obra
-    df_final.to_excel(writer, index=False, sheet_name="Costes Mano de Obra")
+    df_final.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Costes Mano de Obra")
 
     # Hoja 3: resumen de oferta
-    df_resumen.to_excel(writer, index=False, sheet_name="Resumen Oferta")
+    df_resumen.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Resumen Oferta")
 
-    # (Opcional) incluir una hoja con los parámetros seleccionados
+    # Hoja 4: datos generales
     parametros = pd.DataFrame({
         "Campo": ["Fecha decisión", "Población", "Cliente", "Delegación"],
         "Valor": [fecha_decision, poblacion, cliente, delegacion]
     })
-    parametros.to_excel(writer, index=False, sheet_name="Datos Generales")
+    parametros.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Datos Generales")
 
+# =====================
+# 🎨 APLICAR FORMATO PROFESIONAL AL EXCEL
+# =====================
+
+# Volver al inicio del buffer para leer lo escrito
 output.seek(0)
+wb = load_workbook(output)
+
+# --- Estilos básicos ---
+bold = Font(bold=True)
+center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+right = Alignment(horizontal="right", vertical="center")
+gray_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+yellow_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+border = Border(
+    left=Side(style="thin", color="000000"),
+    right=Side(style="thin", color="000000"),
+    top=Side(style="thin", color="000000"),
+    bottom=Side(style="thin", color="000000"),
+)
+
+# --- Formato general por hoja ---
+for sheet_name in wb.sheetnames:
+    ws = wb[sheet_name]
+
+    # Ajuste automático de ancho de columnas
+    for col in ws.columns:
+        max_len = max((len(str(cell.value)) if cell.value else 0) for cell in col)
+        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_len + 4, 40)
+
+    # Bordes y alineación general
+    for row in ws.iter_rows():
+        for cell in row:
+            cell.border = border
+            cell.alignment = Alignment(vertical="center")
+
+# --- Formato específico para hoja "Resumen Oferta" ---
+if "Resumen Oferta" in wb.sheetnames:
+    ws = wb["Resumen Oferta"]
+
+    # Título principal dinámico
+    titulo_texto = f"OFERTA: Cámaras para visualizar y controlar desde {delegacion or 'CPC'} ({poblacion or ''})"
+    ws.insert_rows(1, amount=5)
+    ws["A1"] = titulo_texto
+    ws["A1"].font = Font(bold=True, size=14)
+    ws["A1"].alignment = center
+    ws.merge_cells("A1:D1")
+
+    # Encabezados de la tabla
+    for col in ["A", "B", "C", "D"]:
+        ws[f"{col}7"].fill = gray_fill
+        ws[f"{col}7"].font = bold
+        ws[f"{col}7"].alignment = center
+
+    # Subtotales y total general
+    last_row = ws.max_row + 2
+    ws[f"A{last_row}"] = "TOTAL GENERAL"
+    ws[f"A{last_row}"].font = bold
+    ws[f"A{last_row}"].fill = gray_fill
+    ws[f"B{last_row}"] = total_tarifa
+    ws[f"C{last_row}"] = f"{total_descuento:.2f}%"
+    ws[f"D{last_row}"] = total_neto
+
+    for col in ["A", "B", "C", "D"]:
+        ws[f"{col}{last_row}"].border = border
+        ws[f"{col}{last_row}"].alignment = right
+        if col != "A":
+            ws[f"{col}{last_row}"].number_format = "#,##0.00 €"
+
+    # Fila de totales resaltada en amarillo
+    for col in ["A", "B", "C", "D"]:
+        ws[f"{col}{last_row}"].fill = yellow_fill
+
+# --- Formato hoja "Datos Generales" ---
+if "Datos Generales" in wb.sheetnames:
+    ws = wb["Datos Generales"]
+    ws["A1"].fill = gray_fill
+    ws["A1"].font = bold
+    ws["B1"].fill = gray_fill
+    ws["B1"].font = bold
+    for cell in ws["A"] + ws["B"]:
+        cell.alignment = center
+
+# Guardar los cambios en memoria
+output_formatted = BytesIO()
+wb.save(output_formatted)
+output_formatted.seek(0)
+
+# =====================
+# 📥 DESCARGA FINAL
+# =====================
 
 st.download_button(
     label="💾 Descargar oferta completa (Excel)",
-    data=output,
+    data=output_formatted,
     file_name=f"Oferta_Camaras_{delegacion or 'General'}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
