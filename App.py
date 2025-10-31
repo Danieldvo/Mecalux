@@ -588,40 +588,21 @@ col3.metric("Total Neto Cliente", f"{total_neto:,.2f} €")
 
 
 # =====================
-# 💾 EXPORTAR A EXCEL
+# 💾 EXPORTAR A EXCEL (Opción 2 con unión de filas 3.1 y 3.2)
 # =====================
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
-# --- Generar el Excel inicial ---
 output = BytesIO()
-with pd.ExcelWriter(output, engine="openpyxl") as writer:
-    # Hoja 1: materiales filtrados
-    df_filtrado.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Listado")
+wb = Workbook()
+ws = wb.active
+ws.title = "Resumen Oferta"
 
-    # Hoja 2: costes mano de obra
-    df_final.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Costes Mano de Obra")
-
-    # Hoja 3: resumen de oferta
-    df_resumen.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Resumen Oferta")
-
-    # Hoja 4: datos generales
-    parametros = pd.DataFrame({
-        "Campo": ["Fecha decisión", "Población", "Cliente", "Delegación"],
-        "Valor": [fecha_decision, poblacion, cliente, delegacion]
-    })
-    parametros.reset_index(drop=True).to_excel(writer, index=False, sheet_name="Datos Generales")
-
-# =====================
-# 🎨 APLICAR FORMATO PROFESIONAL AL EXCEL
-# =====================
-
-# Volver al inicio del buffer para leer lo escrito
-output.seek(0)
-wb = load_workbook(output)
-
-# --- Estilos básicos ---
+# --- Estilos ---
 bold = Font(bold=True)
 center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-right = Alignment(horizontal="right", vertical="center")
+right = Alignment(horizontal="right", vertical="center", wrap_text=True)
+left = Alignment(horizontal="left", vertical="center", wrap_text=True)
 gray_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
 yellow_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
 border = Border(
@@ -631,80 +612,132 @@ border = Border(
     bottom=Side(style="thin", color="000000"),
 )
 
-# --- Formato general por hoja ---
-for sheet_name in wb.sheetnames:
-    ws = wb[sheet_name]
+# --- Título ---
+titulo_texto = f"OFERTA: Cámaras para visualizar y controlar desde {delegacion or 'CPC'} ({poblacion or ''})"
+ws["A1"] = titulo_texto
+ws.merge_cells("A1:E1")
+ws["A1"].font = Font(bold=True, size=14)
+ws["A1"].alignment = center
 
-    # Ajuste automático de ancho de columnas
-    for col in ws.columns:
-        max_len = max((len(str(cell.value)) if cell.value else 0) for cell in col)
-        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_len + 4, 40)
+# --- Encabezados ---
+headers = ["Concepto", "Detalle", "Tarifa (€)", "Descuento (%)", "Neto Cliente (€)"]
+for col, text in enumerate(headers, start=1):
+    cell = ws.cell(row=6, column=col, value=text)
+    cell.font = bold
+    cell.alignment = center
+    cell.fill = gray_fill
+    cell.border = border
 
-    # Bordes y alineación general
-    for row in ws.iter_rows():
-        for cell in row:
-            cell.border = border
-            cell.alignment = Alignment(vertical="center")
+# --- Construcción de detalles dinámicos ---
+def generar_detalle(concepto):
+    if concepto == "1. Materiales Internos":
+        if not df_interno.empty:
+            return "\n".join(
+                f"- {row['Descripcion']} ({row['Cantidad']})"
+                for _, row in df_interno.iterrows()
+            )
+        else:
+            return "Sin materiales internos"
 
-# --- Formato específico para hoja "Resumen Oferta" ---
-if "Resumen Oferta" in wb.sheetnames:
-    ws = wb["Resumen Oferta"]
+    elif concepto == "2. Materiales Externos":
+        if not df_externo.empty:
+            return "\n".join(
+                f"- {row['Descripcion']} ({row['Cantidad']})"
+                for _, row in df_externo.iterrows()
+            )
+        else:
+            return "Sin materiales externos"
 
-    # Título principal dinámico
-    titulo_texto = f"OFERTA: Cámaras para visualizar y controlar desde {delegacion or 'CPC'} ({poblacion or ''})"
-    ws.insert_rows(1, amount=5)
-    ws["A1"] = titulo_texto
-    ws["A1"].font = Font(bold=True, size=14)
-    ws["A1"].alignment = center
-    ws.merge_cells("A1:D1")
+    elif concepto in ["3.1 Mano de Obra - Horas Laborales", "3.2 Mano de Obra - Complementos"]:
+        return (
+            f"Técnico Electromecánico: {num_electromecanico} pers. x {dias_electromecanico} días\n"
+            f"Técnico de Control: {num_tec_control} pers. x {dias_control} días"
+        )
 
-    # Encabezados de la tabla
-    for col in ["A", "B", "C", "D"]:
-        ws[f"{col}7"].fill = gray_fill
-        ws[f"{col}7"].font = bold
-        ws[f"{col}7"].alignment = center
+    elif concepto == "4. Ingeniería":
+        return f"Horas de ingeniería: {horas_ingenieria}"
 
-    # Subtotales y total general
-    last_row = ws.max_row + 2
-    ws[f"A{last_row}"] = "TOTAL GENERAL"
-    ws[f"A{last_row}"].font = bold
-    ws[f"A{last_row}"].fill = gray_fill
-    ws[f"B{last_row}"] = total_tarifa
-    ws[f"C{last_row}"] = f"{total_descuento:.2f}%"
-    ws[f"D{last_row}"] = total_neto
+    else:
+        return ""
 
-    for col in ["A", "B", "C", "D"]:
-        ws[f"{col}{last_row}"].border = border
-        ws[f"{col}{last_row}"].alignment = right
-        if col != "A":
-            ws[f"{col}{last_row}"].number_format = "#,##0.00 €"
+# --- Datos dinámicos ---
+start_row = 7
+row_map = {}  # para guardar índices y luego fusionar
+for i, (_, fila) in enumerate(df_resumen.iterrows(), start=start_row):
+    concepto = fila["Concepto"]
+    detalle = generar_detalle(concepto)
 
-    # Fila de totales resaltada en amarillo
-    for col in ["A", "B", "C", "D"]:
-        ws[f"{col}{last_row}"].fill = yellow_fill
+    ws[f"A{i}"] = concepto
 
-# --- Formato hoja "Datos Generales" ---
-if "Datos Generales" in wb.sheetnames:
-    ws = wb["Datos Generales"]
-    ws["A1"].fill = gray_fill
-    ws["A1"].font = bold
-    ws["B1"].fill = gray_fill
-    ws["B1"].font = bold
-    for cell in ws["A"] + ws["B"]:
-        cell.alignment = center
+    # 💡 Caso especial: unificar detalle para 3.1 y 3.2
+    if concepto == "3.1 Mano de Obra - Horas Laborales":
+        ws[f"B{i}"] = detalle
+        row_map["manodeobra_inicio"] = i  # guardamos para fusionar después
+    elif concepto == "3.2 Mano de Obra - Complementos":
+        ws[f"B{i}"] = ""  # esta queda vacía
+        row_map["manodeobra_fin"] = i
+    else:
+        ws[f"B{i}"] = detalle
 
-# Guardar los cambios en memoria
-output_formatted = BytesIO()
-wb.save(output_formatted)
-output_formatted.seek(0)
+    ws[f"C{i}"] = float(fila["Tarifa (€)"])
+    ws[f"D{i}"] = float(fila["Descuento (%)"]) / 100.0  # ✅ formato decimal %
+    ws[f"E{i}"] = float(fila["Neto Cliente (€)"])
 
-# =====================
-# 📥 DESCARGA FINAL
-# =====================
+    # Aplicar formato
+    for col in "ABCDE":
+        c = ws[f"{col}{i}"]
+        c.border = border
+        c.alignment = left if col in ["A", "B"] else right
+        if col in ["C", "E"]:
+            c.number_format = "#,##0.00 €"
+        elif col == "D":
+            c.number_format = "0.00%"
 
+# --- Fusionar celdas de Detalle (Mano de Obra) ---
+if "manodeobra_inicio" in row_map and "manodeobra_fin" in row_map:
+    ws.merge_cells(
+        start_row=row_map["manodeobra_inicio"],
+        start_column=2,
+        end_row=row_map["manodeobra_fin"],
+        end_column=2
+    )
+
+# --- Total general ---
+total_row = start_row + len(df_resumen)
+ws[f"A{total_row}"] = "TOTAL GENERAL"
+ws[f"C{total_row}"] = total_tarifa
+ws[f"D{total_row}"] = total_descuento / 100.0
+ws[f"E{total_row}"] = total_neto
+
+for col in "ABCDE":
+    c = ws[f"{col}{total_row}"]
+    c.font = bold
+    c.fill = yellow_fill
+    c.border = border
+    c.alignment = right
+    if col in ["C", "E"]:
+        c.number_format = "#,##0.00 €"
+    elif col == "D":
+        c.number_format = "0.00%"
+
+# --- Ajuste de anchos ---
+col_widths = {"A": 35, "B": 55, "C": 18, "D": 18, "E": 20}
+for col, width in col_widths.items():
+    ws.column_dimensions[col].width = width
+
+# Ajustar altura automática de fila para texto multilinea
+for row in ws.iter_rows(min_row=start_row, max_row=total_row):
+    for cell in row:
+        cell.alignment = Alignment(wrap_text=True, vertical="center")
+
+# --- Guardar ---
+wb.save(output)
+output.seek(0)
+
+# --- Descargar ---
 st.download_button(
     label="💾 Descargar oferta completa (Excel)",
-    data=output_formatted,
-    file_name=f"Oferta_Camaras_{delegacion or 'General'}.xlsx",
+    data=output,
+    file_name=f"Oferta_Resumen_{delegacion or 'General'}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
