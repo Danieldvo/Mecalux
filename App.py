@@ -284,14 +284,16 @@ st.subheader("➕ Añadir materiales adicionales")
 
 # Crear contenedor expandible
 with st.expander("Agregar material adicional"):
-    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+    col1, col2, col3, col4,col5 = st.columns([2,3, 1, 1, 1])
     with col1:
-        descripcion_extra = st.text_input("Descripción del material", "")
+         referencia_extra = st.text_input("Referencia del material", "")
     with col2:
-        cantidad_extra = st.number_input("Cantidad", min_value=0.0, step=1.0, value=0.0)
+        descripcion_extra = st.text_input("Descripción del material", "")
     with col3:
-        precio_unit_extra = st.number_input("Precio unitario (€)", min_value=0.0, step=1.0, value=0.0)
+        cantidad_extra = st.number_input("Cantidad", min_value=0.0, step=1.0, value=0.0)
     with col4:
+        precio_unit_extra = st.number_input("Precio unitario (€)", min_value=0.0, step=1.0, value=0.0)
+    with col5:
         categoria_extra = st.selectbox("Categoría", ["Interno", "Externo"])
 
     # Botón para añadir material
