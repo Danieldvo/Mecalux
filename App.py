@@ -121,36 +121,147 @@ with st.sidebar:
     distancia = st.number_input("Distancia Ft->Arm (m)", min_value=0, max_value=1000, value=100, step=10)
     num_maq = st.number_input("Número de máquinas", min_value=1, max_value=50, value=1, step=1)
 
+
+
+    # =====================
+    # 👷 BLOQUE DE MANO DE OBRA (SEPARADO POR TÉCNICO)
+    # =====================
     st.header("👷 Mano de obra")
-    km_desplazamiento = st.number_input(
+    
+    # --- Técnico Electromecánico ---
+    st.subheader("🧰 Técnico Electromecánico")
+
+    km_electro = st.number_input(
     "Kilómetros desde la delegación a la instalación (ida + vuelta)",
     min_value=0,
     max_value=9000,
     value=0,
     step=10,
-    key="km_desplazamiento"
+    key="km_electro"
     )
 
-    h_desplazamiento = st.number_input(
+    h_electro = st.number_input(
     "Horas de desplazamiento (ida + vuelta)",
     min_value=0,
     max_value=24,
     value=0,
     step=1,
-    key="h_desplazamiento"
+    key="h_electro"
     )
 
-    trabajo_frio = st.selectbox(
+    frio_electro = st.selectbox(
     "Trabajo en frío (<4ºC)",
     ["NO", "SI"],
-    key="trabajo_frio"
+    key="frio_electro"
     )
 
-    estancia = st.selectbox(
+    estancia_electro = st.selectbox(
     "Estancia del operario",
     ["VIAJA", "PERNOCTA"],
-    key="estancia"
+    key="estancia_electro"
     )
+
+    # --- NUEVAS VARIABLES: trabajo en festivo y nocturno (Electromecánico) ---
+    st.markdown("#### 🌙 Horas especiales (Electromecánico)")
+
+    horas_festivo_electro = st.number_input(
+    "Horas en festivo",
+    min_value=0.0,
+    step=1.0,
+    value=0.0,
+    key="horas_festivo_electro"
+    )
+
+    horas_nocturno_electro = st.number_input(
+    "Horas en nocturno",
+    min_value=0.0,
+    step=1.0,
+    value=0.0,
+    key="horas_nocturno_electro"
+    )
+    # --- NUEVAS VARIABLES: Tipo de viaje y vehículo de alquiler (Electromecánico) ---
+    st.markdown("#### ✈️ Desplazamientos (Electromecánico)")
+
+    tipo_viaje_electro = st.selectbox(
+    "Tipo de viaje",
+    ["COCHE", "AVION"],
+    key="tipo_viaje_electro"
+    )
+
+    dias_alquiler_electro = st.number_input(
+    "Vehículo de alquiler (días)",
+    min_value=0.0,
+    step=1.0,
+    value=0.0,
+    key="dias_alquiler_electro"
+    )
+
+    # --- Técnico de Control ---
+    st.subheader("🧠 Técnico de Control")
+    km_ctrl = st.number_input(
+    "Kilómetros desde la delegación a la instalación (ida + vuelta)",
+    min_value=0,
+    max_value=9000,
+    value=0,
+    step=10,
+    key="km_ctrl"
+    )
+
+    h_ctrl = st.number_input(
+    "Horas de desplazamiento (ida + vuelta)",
+    min_value=0,
+    max_value=24,
+    value=0,
+    step=1,
+    key="h_ctrl"
+    )
+
+    frio_ctrl = st.selectbox(
+    "Trabajo en frío (<4ºC)",
+    ["NO", "SI"],
+    key="frio_ctrl"
+    )
+    
+    estancia_ctrl = st.selectbox(
+    "Estancia del operario",
+    ["VIAJA", "PERNOCTA"],
+    key="estancia_ctrl"
+    )
+    # --- NUEVAS VARIABLES: trabajo en festivo y nocturno (Control) ---
+    st.markdown("#### 🌙 Horas especiales (Control)")
+
+    horas_festivo_ctrl = st.number_input(
+    "Horas en festivo",
+    min_value=0.0,
+    step=1.0,
+    value=0.0,
+    key="horas_festivo_ctrl"
+    )
+
+    horas_nocturno_ctrl = st.number_input(
+    "Horas en nocturno",
+    min_value=0.0,
+    step=1.0,
+    value=0.0,
+    key="horas_nocturno_ctrl"
+    )
+    # --- NUEVAS VARIABLES: Tipo de viaje y vehículo de alquiler (Control) ---
+    st.markdown("#### ✈️ Desplazamientos (Control)")
+
+    tipo_viaje_ctrl = st.selectbox(
+    "Tipo de viaje",
+    ["COCHE", "AVION"],
+    key="tipo_viaje_ctrl"
+    )
+
+    dias_alquiler_ctrl = st.number_input(
+    "Vehículo de alquiler (días)",
+    min_value=0.0,
+    step=1.0,
+    value=0.0,
+    key="dias_alquiler_ctrl"
+    )
+
 # =====================
 # 🧮 APLICAR FILTROS
 # =====================
@@ -253,26 +364,8 @@ st.dataframe(
     use_container_width=True, hide_index=True
 )
 st.markdown(f"**Subtotal Externo:** {df_externo['PrecioTotal'].sum():,.2f} €")
-
-st.markdown("---")
 st.markdown(f"**Total Material:** {df_filtrado['PrecioTotal'].sum():,.2f} €")
 
-
-# =====================
-# 💾 DESCARGA DE RESULTADOS
-# =====================
-
-#output = BytesIO()
-#with pd.ExcelWriter(output, engine="openpyxl") as writer:
-#    df_filtrado.to_excel(writer, index=False, sheet_name="Listado")
-#output.seek(0)
-
-#st.download_button(
-#    label="💾 Descargar listado filtrado (Excel)",
-#    data=output,
-#    file_name="Listado_materiales_filtrado.xlsx",
-#    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-#)
 
 # =====================
 # 👷 3. MANO DE OBRA
@@ -291,45 +384,89 @@ def calcular_dias_tecnico_electromecanico(red, funcion, num_maq):
             return 1 * num_maq + 2
     elif red == "Profinet":
         if funcion == "Vision":
-            return 0.5 * num_maq
+            return 1 * num_maq
         elif funcion == "Vision&Control":
             return 0.5 * num_maq + 2
     return 0
 
 def calcular_dias_tecnico_control(red, funcion, num_maq):
+    # 🔹 Caso especial: si son 5 o más máquinas, Vision&Control y Profibus → 5 días fijos
+    if red == "Profibus" and funcion == "Vision&Control" and num_maq >= 5:
+        return 5
+
     if red == "Profibus":
         if funcion == "Vision":
-            return 0.5 * num_maq + 2
+            return 0.5 * num_maq + 1
         elif funcion == "Vision&Control":
-            return 0.5 * num_maq + 4
+            return 1 * num_maq + 1
+
     elif red == "Profinet":
         if funcion == "Vision":
-            return 0.25 * num_maq + 2
-        elif funcion == "Vision&Control":
-            return 0.25 * num_maq + 4
+            return 0.5 * num_maq + 1
+        elif funcion == "Vision&Control" & num_maq!=5:
+            return 0.5 * num_maq + 1
+
     return 0
+
+
 
 # --- Aplicar lógica ---
 dias_electromecanico = calcular_dias_tecnico_electromecanico(red, funcion, num_maq)
 dias_control = calcular_dias_tecnico_control(red, funcion, num_maq)
+dias_electromecanico_of = 0
+dias_control_of = 1
 num_electromecanico = 2
-num_tec_control=1
-horas_act =8
+num_tec_control = 1
+horas_act = 8
+
+# =====================
+# 🧮 DÍAS ADICIONALES MANUALES
+# =====================
+st.markdown("### ➕ Días adicionales (ajuste manual)")
+
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    dias_extra_electro = st.number_input(
+        "Días adicionales en obra (Electromecánico)",
+        min_value=0.0, step=0.25, value=0.0
+    )
+with col2:
+    dias_extra_ctrl = st.number_input(
+        "Días adicionales en obra (Control)",
+        min_value=0.0, step=0.25, value=0.0
+    )
+with col3:
+    dias_extra_electro_of = st.number_input(
+        "Días adicionales en oficina (Electromecánico)",
+        min_value=0.0, step=0.25, value=0.0
+    )
+with col4:
+    dias_extra_ctrl_of = st.number_input(
+        "Días adicionales en oficina (Control)",
+        min_value=0.0, step=0.25, value=0.0
+    )
+
+# --- Sumar a los días calculados automáticamente ---
+dias_electromecanico += dias_extra_electro
+dias_control += dias_extra_ctrl
+dias_electromecanico_of += dias_extra_electro_of
+dias_control_of += dias_extra_ctrl_of
 
 # --- Crear DataFrames para mostrar ---
 df_mano_obra = pd.DataFrame({
     "Técnico": ["Técnico Electromecánico", "Técnico de Control"],
     "Nº Personas": [num_electromecanico, num_tec_control],
-    "Días Laborales": [dias_electromecanico, dias_control]
+    "Días en Obra": [dias_electromecanico, dias_control],
+    "Dias Oficina" : [dias_electromecanico_of, dias_control_of]
 })
 
 # --- Mostrar resultados ---
 st.markdown("### Técnico Electromecánico")
-st.dataframe(df_mano_obra.reset_index(drop=True)[df_mano_obra["Técnico"] == "Técnico Electromecánico"][["Nº Personas", "Días Laborales"]],
+st.dataframe(df_mano_obra.reset_index(drop=True)[df_mano_obra["Técnico"] == "Técnico Electromecánico"][["Nº Personas", "Días en Obra","Dias Oficina"]],
              use_container_width=True,hide_index=True)
 
 st.markdown("### Técnico de Control")
-st.dataframe(df_mano_obra.reset_index(drop=True)[df_mano_obra["Técnico"] == "Técnico de Control"][["Nº Personas", "Días Laborales"]],
+st.dataframe(df_mano_obra.reset_index(drop=True)[df_mano_obra["Técnico"] == "Técnico de Control"][["Nº Personas", "Días en Obra","Dias Oficina"]],
          use_container_width=True,hide_index=True)
 
 
@@ -361,23 +498,48 @@ tarifa_dieta_completa, tipo_dieta_completa = obtener_tarifa(df_tarifas, "Ambos",
 tarifa_pernocta, tipo_pernocta = obtener_tarifa(df_tarifas, "Ambos", "PERNOCTACION")
 tarifa_km, tipo_km = obtener_tarifa(df_tarifas, "Ambos", "KILOMETRO")
 tarifa_frio, tipo_frio = obtener_tarifa(df_tarifas, "Ambos", "FRIO")
+# --- NUEVAS TARIFAS PARA HORAS FESTIVAS Y NOCTURNAS ---
+tarifa_plus_nocturnidad, tipo_plus_nocturnidad = obtener_tarifa(df_tarifas, "Ambos", "PLUS POR JORNADA DE NOCTURNIDAD")
+tarifa_nocturna_electro, tipo_nocturna_electro = obtener_tarifa(df_tarifas, "Técnico Electromecánico", "HORA TRABAJO NOCTURNA/FESTIVA TECNICO")
+tarifa_nocturna_ctrl, tipo_nocturna_ctrl = obtener_tarifa(df_tarifas, "Técnico de Control", "HORA TRABAJO NOCTURNA/FESTIVA INGENIERO")
+tarifa_plus_turnicidad, tipo_plus_turnicidad = obtener_tarifa(df_tarifas, "Ambos", "PLUS POR JORNADA DE TURNICIDAD")
+# --- NUEVAS TARIFAS PARA DESPLAZAMIENTOS ---
+tarifa_avion, tipo_avion = obtener_tarifa(df_tarifas, "Ambos", "PRECIO AVION ESPAÑA")
+tarifa_alquiler, tipo_alquiler = obtener_tarifa(df_tarifas, "Ambos", "PRECIO VEHICULO DE ALQUILER POR DIA")
+
 
 # --- Cálculo de cantidades ---
-cant_horas_electro = dias_electromecanico * num_electromecanico * horas_act
-cant_despl_electro = num_electromecanico * h_desplazamiento
-cant_media_dieta_electro = dias_electromecanico * num_electromecanico if estancia == "VIAJA" else 0
-cant_dieta_completa_electro = dias_electromecanico * num_electromecanico if estancia == "PERNOCTA" else 0
-cant_pernocta_electro = dias_electromecanico * num_electromecanico if estancia == "PERNOCTA" else 0
-cant_km_electro = km_desplazamiento
-cant_frio_electro = dias_electromecanico * num_electromecanico * horas_act if trabajo_frio == "SI" else 0
+cant_horas_electro = (dias_electromecanico+dias_electromecanico_of) * num_electromecanico * horas_act
+cant_despl_electro = num_electromecanico * h_electro
+cant_media_dieta_electro = dias_electromecanico * num_electromecanico if estancia_electro == "VIAJA" else 0
+cant_dieta_completa_electro = dias_electromecanico * num_electromecanico if estancia_electro == "PERNOCTA" else 0
+cant_pernocta_electro = dias_electromecanico * num_electromecanico if estancia_electro == "PERNOCTA" else 0
+cant_km_electro = km_electro
+cant_frio_electro = dias_electromecanico * num_electromecanico if frio_electro == "SI" else 0
 
-cant_horas_ctrl = dias_control * num_tec_control * horas_act
-cant_despl_ctrl = num_tec_control * h_desplazamiento
-cant_media_dieta_ctrl = dias_control * num_tec_control if estancia == "VIAJA" else 0
-cant_dieta_completa_ctrl = dias_control * num_tec_control if estancia == "PERNOCTA" else 0
-cant_pernocta_ctrl = dias_control * num_tec_control if estancia == "PERNOCTA" else 0
-cant_km_ctrl = km_desplazamiento
-cant_frio_ctrl = dias_control * num_tec_control * horas_act if trabajo_frio == "SI" else 0
+cant_horas_ctrl = (dias_control+dias_control_of) * num_tec_control * horas_act
+cant_despl_ctrl = num_tec_control * h_ctrl
+cant_media_dieta_ctrl = dias_control * num_tec_control if estancia_ctrl == "VIAJA" else 0
+cant_dieta_completa_ctrl = dias_control * num_tec_control if estancia_ctrl == "PERNOCTA" else 0
+cant_pernocta_ctrl = dias_control * num_tec_control if estancia_ctrl == "PERNOCTA" else 0
+cant_km_ctrl = km_ctrl
+cant_frio_ctrl = dias_control * num_tec_control if frio_ctrl == "SI" else 0
+
+
+# --- CÁLCULOS DE VIAJE Y VEHÍCULO ---
+# Avión: se multiplica x2 por técnico si el viaje es en avión
+coste_avion_electro = 0
+coste_avion_ctrl = 0
+if tipo_viaje_electro == "AVION":
+    coste_avion_electro = tarifa_avion * num_electromecanico * 2
+if tipo_viaje_ctrl == "AVION":
+    coste_avion_ctrl = tarifa_avion * num_tec_control * 2
+
+# Vehículo de alquiler: coste por días
+coste_alquiler_electro = dias_alquiler_electro * tarifa_alquiler
+coste_alquiler_ctrl = dias_alquiler_ctrl * tarifa_alquiler
+
+
 
 # --- Definición de estructura de costes con tipo ---
 datos_coste = [
@@ -390,7 +552,43 @@ datos_coste = [
     {"Tipo": tipo_pernocta, "Concepto": "Pernocta", "Electromecánico": cant_pernocta_electro * tarifa_pernocta, "Control": cant_pernocta_ctrl * tarifa_pernocta},
     {"Tipo": tipo_km, "Concepto": "Kilómetros", "Electromecánico": cant_km_electro * tarifa_km, "Control": cant_km_ctrl * tarifa_km},
     {"Tipo": tipo_frio, "Concepto": "Trabajo en frío", "Electromecánico": cant_frio_electro * tarifa_frio, "Control": cant_frio_ctrl * tarifa_frio},
-]
+    # --- NUEVOS CONCEPTOS: Desplazamientos (avión y alquiler vehículo) ---
+    {"Tipo": "Complementos", "Concepto": "Viaje en avión (ida y vuelta)",
+    "Electromecánico": coste_avion_electro,
+    "Control": coste_avion_ctrl},
+
+    {"Tipo": "Complementos", "Concepto": "Vehículo de alquiler (por días)",
+    "Electromecánico": coste_alquiler_electro,
+    "Control": coste_alquiler_ctrl},
+    # --- NUEVOS CONCEPTOS: Horas especiales (Festivo y Nocturno) ---
+    # 1️⃣ Trabajo en festivo → se calcula por horas
+    {"Tipo": "Complementos", "Concepto": "Trabajo en festivo",
+    "Electromecánico": horas_festivo_electro * tarifa_nocturna_electro*num_electromecanico,
+    "Control": horas_festivo_ctrl * tarifa_nocturna_ctrl*num_tec_control},
+
+    # 2️⃣ Trabajo en nocturno → se calcula por horas + PLUS por jornada (nocturnidad + turnicidad)
+    {
+    "Tipo": "Complementos",
+    "Concepto": "Trabajo en nocturno",
+    "Electromecánico": (
+      horas_nocturno_electro * tarifa_nocturna_electro*num_electromecanico
+      + (
+         (horas_nocturno_electro / horas_act)  # convertir horas en días
+         * num_electromecanico
+         * (tarifa_plus_nocturnidad + tarifa_plus_turnicidad)
+        )
+     ),
+    "Control": (
+      horas_nocturno_ctrl * tarifa_nocturna_ctrl* num_tec_control
+      + (
+         (horas_nocturno_ctrl / horas_act)
+         * num_tec_control
+         * (tarifa_plus_nocturnidad + tarifa_plus_turnicidad)
+        )
+     ),
+   },
+
+          ]
 
 df_costes = pd.DataFrame(datos_coste)
 
@@ -420,6 +618,22 @@ styler = df_final.style.format({
     "Control": "{:,.2f} €"
 })
 st.dataframe(styler, use_container_width=True,hide_index=True)
+
+# --- Totales por Tipo (Horas Laborales / Complementos) ---
+totales_por_tipo = (
+    df_subtotales.groupby("Tipo")[["Electromecánico", "Control"]]
+    .sum()
+    .sum(axis=1)
+    .to_dict()
+)
+
+total_horas_laborales = totales_por_tipo.get("Horas Laborales", 0)
+total_complementos = totales_por_tipo.get("Complementos", 0)
+
+# --- Mostrar resumen en markdown ---
+st.markdown(f"**Total Horas Laborales:** {total_horas_laborales:,.2f} €")
+st.markdown(f"**Total Complementos:** {total_complementos:,.2f} €")
+st.markdown(f"**Total Mano de Obra:** {total_horas_laborales + total_complementos:,.2f} €")
 
 
 # =====================
