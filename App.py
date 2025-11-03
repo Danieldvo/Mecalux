@@ -298,6 +298,7 @@ with st.expander("Agregar material adicional"):
     if st.button("➕ Añadir material"):
         if descripcion_extra and cantidad_extra > 0 and precio_unit_extra > 0:
             nuevo_material = pd.DataFrame({
+                "Referencia": [referencia_extra],
                 "Descripcion": [descripcion_extra],
                 "Cantidad": [cantidad_extra],
                 "PrecioUnit": [precio_unit_extra],
@@ -319,14 +320,14 @@ with st.expander("Agregar material adicional"):
 
 # Recuperar materiales adicionales si existen
 df_adicionales = st.session_state.get("materiales_adicionales", pd.DataFrame(
-    columns=["Descripcion", "Cantidad", "PrecioUnit", "Categoria", "PrecioTotal"]
+    columns=["Referencia","Descripcion", "Cantidad", "PrecioUnit", "Categoria", "PrecioTotal"]
 ))
 
 # Mostrar materiales añadidos
 if not df_adicionales.empty:
     st.markdown("### 🧾 Materiales adicionales añadidos")
     st.dataframe(
-        df_adicionales[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal", "Categoria"]],
+        df_adicionales[["Referencia","Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal", "Categoria"]],
         use_container_width=True,
         hide_index=True
     )
@@ -352,7 +353,7 @@ df_externo = df_filtrado[df_filtrado["Categoria"] == "Externo"]
 st.markdown("## 1. Materiales")
 st.markdown("### Material Interno")
 st.dataframe(
-    df_interno.reset_index(drop=True)[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
+    df_interno.reset_index(drop=True)[["Referencia","Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
     use_container_width=True,
     hide_index=True
 )
@@ -360,7 +361,7 @@ st.markdown(f"**Subtotal Interno:** {df_interno['PrecioTotal'].sum():,.2f} €")
 
 st.markdown("### Material Externo")
 st.dataframe(
-    df_externo.reset_index(drop=True)[["Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
+    df_externo.reset_index(drop=True)[["Referencia","Descripcion", "Cantidad", "PrecioUnit", "PrecioTotal"]],
     use_container_width=True, hide_index=True
 )
 st.markdown(f"**Subtotal Externo:** {df_externo['PrecioTotal'].sum():,.2f} €")
