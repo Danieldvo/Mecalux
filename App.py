@@ -284,7 +284,7 @@ st.subheader("➕ Añadir materiales adicionales")
 
 # Crear contenedor expandible
 with st.expander("Agregar material adicional"):
-    col1, col2, col3, col4,col5 = st.columns([2,3, 1, 1, 1])
+    col1, col2, col3, col4,col5 = st.columns([2,3, 2, 2, 2])
     with col1:
          referencia_extra = st.text_input("Referencia del material", "")
     with col2:
