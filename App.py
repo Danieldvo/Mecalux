@@ -286,9 +286,9 @@ st.subheader("➕ Añadir materiales adicionales")
 with st.expander("Agregar material adicional"):
     col1, col2, col3, col4,col5 = st.columns([2,3, 2, 2, 2])
     with col1:
-         referencia_extra = st.text_input("Referencia del material", "")
+         referencia_extra = st.text_input("Referencia", "")
     with col2:
-        descripcion_extra = st.text_input("Descripción del material", "")
+        descripcion_extra = st.text_input("Descripción", "")
     with col3:
         cantidad_extra = st.number_input("Cantidad", min_value=0.0, step=1.0, value=0.0)
     with col4:
